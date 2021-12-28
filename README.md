@@ -8,11 +8,10 @@
 
 
 ```bash
-git clone https://github.com/austintgriffith/scaffold-eth.git emoji-support
+git clone https://github.com/Polygon-Academy/crowdfund-starter
 
-cd emoji-support
+cd crowdfund-starter
 
-git checkout emoji-support
 ```
 
 ```bash
