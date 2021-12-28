@@ -3,8 +3,8 @@
 
 
 
-# Emoji Support
-## 🏗 scaffold-eth MVP CLR Example
+# Crowdfund-starter-dapp
+## 🏗 Built with Scaffold-eth!
 
 
 ```bash
