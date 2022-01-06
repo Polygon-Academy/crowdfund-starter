@@ -1,38 +1,25 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 import "antd/dist/antd.css";
-import { MailOutlined } from "@ant-design/icons";
-import { getDefaultProvider, InfuraProvider, JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
+import {  JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, List, Tabs, Menu } from "antd";
+import { Row, Col, Button, Menu, Input, Typography, Modal, Space } from "antd";
+import { SettingOutlined } from '@ant-design/icons';
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
-import { useUserAddress, useTimestamp } from "eth-hooks";
-import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useContractReader, useBalance, useEventListener } from "./hooks";
-import { Header, Account, Faucet, Ramp, Contract, GasGauge, Address, EtherInput } from "./components";
+import { useUserAddress } from "eth-hooks";
+import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useContractReader, useEventListener, useBalance, useExternalContractLoader } from "./hooks";
+import { Header, Account, Faucet, Ramp, Contract, GasGauge, Swap, Lend } from "./components";
+import { SimpleLend } from "./views";
 import { Transactor } from "./helpers";
-import { parseEther, formatEther } from "@ethersproject/units";
-import { ethers } from "ethers";
-//import Hints from "./Hints";
-import { Activity, ExampleUI, Subgraph, Results } from "./views"
-/*
-    Welcome to 🏗 scaffold-eth !
+import { formatEther, parseEther } from "@ethersproject/units";
+import { Hints } from "./views"
 
-    Code:
-    https://github.com/austintgriffith/scaffold-eth
+import { INFURA_ID, DAI_ADDRESS, DAI_ABI } from "./constants";
+const { Text, Title, Paragraph } = Typography;
 
-    Support:
-    https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA
-    or DM @austingriffith on twitter or telegram
-
-    You should get your own Infura.io ID and put it in `constants.js`
-    (this is your connection to the main Ethereum network for ENS etc.)
-*/
-import { INFURA_ID, ETHERSCAN_KEY } from "./constants";
-import humanizeDuration from "humanize-duration";
-const { TabPane } = Tabs;
-
-const DEBUG = false
+// 😬 Sorry for all the console logging 🤡
+const DEBUG = true
 
 // 🔭 block explorer URL
 const blockExplorer = "https://etherscan.io/" // for xdai: "https://blockscout.com/poa/xdai/"
@@ -45,17 +32,15 @@ const mainnetProvider = new JsonRpcProvider("https://mainnet.infura.io/v3/"+INFU
 // ( ⚠️ Getting "failed to meet quorum" errors? Check your INFURA_ID)
 
 // 🏠 Your local provider is usually pointed at your local blockchain
-//const localProviderUrl = "https://mainnet.infura.io/v3/5b3aa68d82264f59bb6a1874cb3c23ea"; // for xdai: https://dai.poa.network
+const localProviderUrl = "http://localhost:8545"; // for xdai: https://dai.poa.network
 // as you deploy to other networks you can set REACT_APP_PROVIDER=https://dai.poa.network in packages/react-app/.env
-//const localProviderUrlFromEnv = process.env.REACT_APP_PROVIDER ? process.env.REACT_APP_PROVIDER : localProviderUrl;
-//if(DEBUG) console.log("🏠 Connecting to provider:", localProviderUrlFromEnv);
-const localProvider = new JsonRpcProvider("http://localhost:8545");//mainnetProvider//
+const localProviderUrlFromEnv = process.env.REACT_APP_PROVIDER ? process.env.REACT_APP_PROVIDER : localProviderUrl;
+if(DEBUG) console.log("🏠 Connecting to provider:", localProviderUrlFromEnv);
+const localProvider = new JsonRpcProvider(localProviderUrlFromEnv);
 
 
 
 function App(props) {
-
-
   const [injectedProvider, setInjectedProvider] = useState();
   /* 💵 this hook will get the price of ETH from 🦄 Uniswap: */
   const price = useExchangePrice(mainnetProvider); //1 for xdai
@@ -72,63 +57,47 @@ function App(props) {
   // The transactor wraps transactions and provides notificiations
   const tx = Transactor(userProvider, gasPrice)
 
-  // 🏗 scaffold-eth is full of handy hooks like this one to get your balance:
-  const yourLocalBalance = useBalance(localProvider, address);
-  if(DEBUG) console.log("💵 yourLocalBalance",yourLocalBalance?formatEther(yourLocalBalance):"...")
+  const [showNetworkWarning, setShowNetworkWarning] = useState(false)
 
-  // just plug in different 🛰 providers to get your balance on different chains:
-  const yourMainnetBalance = useBalance(mainnetProvider, address);
-  if(DEBUG) console.log("💵 yourMainnetBalance",yourMainnetBalance?formatEther(yourMainnetBalance):"...")
-
-  // Load in your local 📝 contract and read a value from it:
-  const readContracts = useContractLoader(localProvider)
-  if(DEBUG) console.log("📝 readContracts",readContracts)
-
-  // If you want to make 🔐 write transactions to your contracts, use the userProvider:
-  const writeContracts = useContractLoader(userProvider)
-  if(DEBUG) console.log("🔐 writeContracts",writeContracts)
-
-  const roundStart = useContractReader(readContracts, "MVPCLR", "roundStart")
-  if(DEBUG) console.log("⏰ roundStart",roundStart)
-
-  const roundDuration = useContractReader(readContracts, "MVPCLR", "roundDuration")
-  if(DEBUG) console.log("⏰ roundDuration",roundDuration)
-
-  const currentTime = useTimestamp(localProvider)
-  if(DEBUG) console.log("⏰ currentTime",currentTime)
-
-  const clrBalance = useBalance(localProvider, readContracts?readContracts.MVPCLR.address:readContracts);
-  if(DEBUG) console.log("🏦 clrBalance",clrBalance)
-
-  const roundFinish = roundStart&&roundDuration?roundStart.add(roundDuration):0
-  const roundFinishedIn = roundFinish && (roundFinish.toNumber() - currentTime)
-  if(DEBUG) console.log("roundFinishedIn",roundFinishedIn)//
-  const roundFinished = roundFinish && ( roundFinishedIn <= 0 )
-
-  //RecipientAdded(address addr, bytes32 data, uint256 index);
-  const recipientAddedEvents = useEventListener(readContracts, "MVPCLR", "RecipientAdded", localProvider, 1);
-  if(DEBUG) console.log("📟 recipientAddedEvents:",recipientAddedEvents)
-
-  const [randomProjectList, setRandomProjectList] = useState([])
-  useEffect(()=>{
-    let newList = []
-    let added = {}
-    for(let r in recipientAddedEvents){
-      if(DEBUG) console.log("recipientAddedEvents ==>",recipientAddedEvents[r])
-      const index = recipientAddedEvents[r].index.toNumber()
-      if(!added[index]){
-        added[index] = true
-        newList.push(recipientAddedEvents[r])
-      }
-    }
-    setRandomProjectList(shuffle(newList))
-  },[recipientAddedEvents])
-
+  if(window.ethereum) {
+    window.ethereum.autoRefreshOnNetworkChange = false
+  }
 
   const loadWeb3Modal = useCallback(async () => {
-    const provider = await web3Modal.connect();
-    setInjectedProvider(new Web3Provider(provider));
-  }, [setInjectedProvider]);
+
+      const provider = await web3Modal.connect();
+
+      const newInjectedNetwork = async (chainId) => {
+        let localNetwork = await localProvider.getNetwork()
+        if(localNetwork.chainId == chainId) {
+          setShowNetworkWarning(false)
+          return true
+        } else{
+          setShowNetworkWarning(true)
+          return false
+        }
+      }
+
+      const newWeb3Provider = async () => {
+        let newWeb3Provider = new Web3Provider(provider)
+        let newNetwork = await newWeb3Provider.getNetwork()
+        newInjectedNetwork(newNetwork.chainId)
+        setInjectedProvider(newWeb3Provider);
+      }
+
+      newWeb3Provider()
+
+      provider.on("chainChanged", (chainId) => {
+        let knownNetwork = newInjectedNetwork(chainId)
+        if(knownNetwork) newWeb3Provider()
+      });
+
+      provider.on("accountsChanged", (accounts: string[]) => {
+        console.log(accounts);
+        newWeb3Provider()
+      });
+
+    }, [setInjectedProvider]);
 
   useEffect(() => {
     if (web3Modal.cachedProvider) {
@@ -139,32 +108,11 @@ function App(props) {
   const [route, setRoute] = useState();
   useEffect(() => {
     setRoute(window.location.pathname)
-  }, [ window.location.pathname ]);
+  }, [setRoute]);
 
-  const [ supportAmounts, setSupportAmount ] = useState({})
+  const [tokenListURI, setTokenListURI] = useState('https://gateway.ipfs.io/ipns/tokens.uniswap.org')
 
-
-  let status = "loading..."
-  if(roundFinished){
-    status = (
-      <div style={{marginTop:32,marginLeft:64,marginRight:64,marginBottom:16,border:"1px solid #f8f8f8",backgroundColor:"#fbfbfb",padding:16,fontSize:16, fontWeight:"bold"}}>
-        Finished <span style={{color:"#999999"}}>{humanizeDuration(roundFinishedIn*1000)} ago</span>
-      </div>
-    )
-  }else if(roundStart && roundFinish && roundStart.gt(0)){
-    status = (
-      <div style={{marginTop:32,marginLeft:64,marginRight:64,marginBottom:16,border:"1px solid #f8f8f8",backgroundColor:"#fbfbfb",padding:16,fontSize:16, fontWeight:"bold"}}>
-        Funding round is <span style={{color:"#95de64"}}>open</span>,
-        ends in <span style={{color:"#adc6ff"}}>{humanizeDuration(roundFinishedIn*1000)}</span>.
-      </div>
-    )
-  }else{
-    status = (
-      <div style={{marginTop:32,marginLeft:64,marginRight:64,marginBottom:16,border:"1px solid #f8f8f8",backgroundColor:"#fbfbfb",padding:16,fontSize:16, fontWeight:"bold"}}>
-        Waiting to start...
-      </div>
-    )
-  }
+  let onLocalChain = localProvider && localProvider.connection && localProvider.connection.url && localProvider.connection.url.indexOf("localhost")>=0 && !process.env.REACT_APP_PROVIDER
 
   return (
     <div className="App">
@@ -176,128 +124,73 @@ function App(props) {
 
         <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
           <Menu.Item key="/">
-            <Link onClick={()=>{setRoute("/")}} to="/">Support</Link>
+            <Link onClick={()=>{setRoute("/")}} to="/">Swap</Link>
           </Menu.Item>
-          <Menu.Item key="/activity">
-            <Link onClick={()=>{setRoute("/activity")}} to="/activity">Activity</Link>
+          <Menu.Item key="/lend">
+            <Link onClick={()=>{setRoute("/lend")}} to="/lend">Lend</Link>
           </Menu.Item>
-
-          <Menu.Item key="/results">
-            <Link onClick={()=>{setRoute("/results")}} to="/results">Results</Link>
+          <Menu.Item key="/simple-lend">
+            <Link onClick={()=>{setRoute("/simple-lend")}} to="/simple-lend">SimpleLend</Link>
           </Menu.Item>
-          <Menu.Item key="/debug">
-            <Link onClick={()=>{setRoute("/debug")}} to="/debug">🔧</Link>
+          <Menu.Item key="/wrap">
+            <Link onClick={()=>{setRoute("/wrap")}} to="/wrap">Wrap</Link>
           </Menu.Item>
-          <Menu.Item key="/code">
-            <a target="_blank" href="https://github.com/austintgriffith/scaffold-eth/tree/emoji-support">🍴</a>
+          <Menu.Item key="/hints">
+            <Link onClick={()=>{setRoute("/hints")}} to="/hints">Hints</Link>
           </Menu.Item>
-          <Menu.Item key="/chat">
-            <a target="_blank" href="https://twitter.com/austingriffith">💬</a>
-          </Menu.Item>
-
         </Menu>
+        <Modal visible={showNetworkWarning} title={"Unknown network"} footer={null} closable={false}>
+          <span>{`Your wallet is not corrected to the right network, please connect to the network at ${localProviderUrlFromEnv}`}</span>
+          <Space><span>Alternatively you can disconnect your wallet.</span><Button onClick={logoutOfWeb3Modal}>Logout</Button></Space>
+        </Modal>
 
         <Switch>
-          <Route exact path="/">
-            <div style={{width:700,margin:"auto",paddingBottom:128}}>
-
-              {status}
-
-              <List
-                size="large"
-                dataSource={randomProjectList}
-                renderItem={(item)=>{
-                  //console.log("item",item)
-                  const index = item.index.toNumber()
-                  return (
-                    <List.Item key={index}>
-                      <div>
-                        <div style={{textAlign:"left",padding:8,fontWeight:'bolder',letterSpacing:"1.5px"}}>
-                          {ethers.utils.parseBytes32String(item.data)}<a style={{fontSize:8}} href={item.link}>{"🔗"}</a>
-                        </div>
-                        <div style={{textAlign:"left",padding:8}}>
-                          <Address
-                            value={item.addr}
-                            ensProvider={mainnetProvider}
-                            blockExplorer={blockExplorer}
-                            fontSize={16}
-                          />
-                        </div>
-                      </div>
-                      <div style={{float:"right",opacity:roundFinished?0.1:1}}>
-                        <Row>
-                          <Col span={16}>
-                            <EtherInput
-                              price={price}
-                              value={supportAmounts[index]}
-                              onChange={value => {
-                                let current = supportAmounts
-                                current[index] = value
-                                setSupportAmount(current)
-                              }}
-                            />
-                          </Col>
-                          <Col span={8}>
-                            <Button onClick={()=>{
-                              if(supportAmounts && supportAmounts[index]){
-                                tx( writeContracts.MVPCLR.donate(index,{value:parseEther(""+supportAmounts[index].toFixed(8))}) )
-                                let current = supportAmounts
-                                current[index] = ""
-                                setSupportAmount(current)
-                              }
-                            }}>
-                              Support
-                            </Button>
-                          </Col>
-                        </Row>
-                      </div>
-
-                    </List.Item>
-                  )
-                }}
+        <Route exact path="/">
+          <Row justify="center">
+          <Swap
+            selectedProvider={userProvider}
+            tokenListURI={tokenListURI}
+            />
+          </Row>
+        </Route>
+        <Route exact path="/lend">
+          <Row justify="center">
+          <Lend
+            selectedProvider={userProvider}
+            ethPrice={price}
+            />
+          </Row>
+        </Route>
+          <Route path="/hints">
+            <Title level={3}>Using the Uniswapper</Title>
+            <Paragraph><Text code>{`<Swap/>`}</Text> is a minimal Uniswap interface, requiring an <a href="https://docs.ethers.io/v5/" target="_blank">ethers.js</a> Provider.</Paragraph>
+            <Paragraph>Click the <SettingOutlined/> on the Swapper widget to view more detailed settings (slippage tolerance, time limit) and other calculations.</Paragraph>
+            <Input placeholder="Enter tokenlist URL" value={tokenListURI} onChange={(e) => {
+              console.log(e.target.value)
+              setTokenListURI(e.target.value) }}
+              style={{width:400}}
               />
-            </div>
+            <Paragraph>Enter the token list URI you would like to use (an optional parameter). Go to <a href="https://tokenlists.org/" target="_blank">tokenlists.org</a> to learn more</Paragraph>
+            <Title level={3}>Using <Text code>{`yarn fork`}</Text> </Title>
+            {onLocalChain?<Paragraph>Add an <a href="https://alchemyapi.io/" target="_blank">Alchemy API URL</a> to the fork script at <Text code>/packages/hardhat/package.json</Text> to avoid <Text code>archive node</Text> errors</Paragraph>:null}
+            <Paragraph>It can sometimes take a local fork a while to get up and running, you might have to refresh a few times, and wait a bit</Paragraph>
+            <Title level={3}>Using the Lender</Title>
+            <Paragraph>Use the Faucet to get some funds to play with (you will have to use the Uniswapper to get an ERC20 to get started)</Paragraph>
+            <Paragraph>Deposit, Withdraw, Borrow and Lend across all the available Aave markets. You can see your total Collateral, Debt and Borrowing allowance at the top of the page</Paragraph>
+            <Paragraph>Specify the currency conversion you want to see: Native, ETH or USD</Paragraph>
+            <Paragraph>Click the settings button <SettingOutlined/> to see more details about your account</Paragraph>
           </Route>
-          <Route exact path="/debug">
-            {/*
-                🎛 this scaffolding is full of commonly used components
-                this <Contract/> component will automatically parse your ABI
-                and give you a form to interact with it locally
-            */}
-            <Contract
-              name="MVPCLR"
-              signer={userProvider.getSigner()}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-            />
+          <Route exact path="/simple-lend">
+            <Row justify="center">
+            <SimpleLend
+              selectedProvider={userProvider}
+              ethPrice={price}
+              />
+            </Row>
           </Route>
-
-          <Route exact path="/activity">
-            <Activity
-              address={address}
-              recipientAddedEvents={recipientAddedEvents}
-              readContracts={readContracts}
-              localProvider={localProvider}
-              mainnetProvider={mainnetProvider}
-              blockExplorer={blockExplorer}
-              price={price}
-            />
-          </Route>
-          <Route exact path="/results">
-            <Results
-              tx={tx}
-              roundFinish={roundFinish}
-              clrBalance={clrBalance}
-              address={address}
-              writeContracts={writeContracts}
-              recipientAddedEvents={recipientAddedEvents}
-              readContracts={readContracts}
-              localProvider={localProvider}
-              mainnetProvider={mainnetProvider}
-              blockExplorer={blockExplorer}
-              price={price}
-            />
+          <Route exact path="/wrap">
+            <Row justify="center">
+            </Row>
           </Route>
         </Switch>
       </BrowserRouter>
@@ -349,7 +242,7 @@ function App(props) {
              {
 
                /*  if the local provider has a signer, let's show the faucet:  */
-               localProvider && localProvider.connection && localProvider.connection.url && localProvider.connection.url.indexOf("localhost")>=0 && !process.env.REACT_APP_PROVIDER && price > 1 ? (
+               onLocalChain && price > 1 ? (
                  <Faucet localProvider={localProvider} price={price} ensProvider={mainnetProvider}/>
                ) : (
                  ""
@@ -363,24 +256,6 @@ function App(props) {
   );
 }
 
-const shuffle = (array) => {
-  var currentIndex = array.length, temporaryValue, randomIndex;
-
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
-  }
-
-  return array;
-}
 
 /*
   Web3 modal helps us "connect" external wallets:
