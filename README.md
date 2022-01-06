@@ -1,18 +1,11 @@
-
-
-
-
-
-# Emoji Support
-## 🏗 scaffold-eth MVP CLR Example
+# Crowdfund Starter
+## 🏗 A crowdfunding/crowdloaning starter kit made with scaffold-eth
 
 
 ```bash
-git clone https://github.com/austintgriffith/scaffold-eth.git emoji-support
+git clone https://github.com/Polygon-Academy/crowdfund-starter
 
-cd emoji-support
-
-git checkout emoji-support
+cd crowdfund-starter
 ```
 
 ```bash
