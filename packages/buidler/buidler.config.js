@@ -72,6 +72,21 @@ module.exports = {
         mnemonic: mnemonic(),
       },
     },
+    mumbai: {
+      url: "https://rpc-mumbai.maticvigil.com/",
+      gasPrice: 1100000000,
+      accounts: {
+        mnemonic: mnemonic(),
+      },
+    },
+    polygon: {
+      url: "https://rpc-mainnet.maticvigil.com/",
+      gasPrice: 1100000000,
+      accounts: {
+        mnemonic: mnemonic(),
+      },
+      chainId: 137,
+    },
     xdai: {
       url: 'https://dai.poa.network',
       gasPrice: 1000000000,

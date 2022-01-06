@@ -3,10 +3,10 @@ import { PageHeader } from "antd";
 
 export default function Header() {
   return (
-    <a href="https://github.com/austintgriffith/scaffold-eth/tree/uniswapper" target="_blank" rel="noopener noreferrer">
+    <a href="/" >
       <PageHeader
-        title="🏗 scaffold-eth"
-        subTitle="forkable Defi interface"
+        title="💰 Emoji.Support"
+        subTitle="mainnet"
         style={{ cursor: "pointer" }}
       />
     </a>

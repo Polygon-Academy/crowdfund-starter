@@ -21,7 +21,7 @@ export default function useEventListener(contracts, contractName, eventName, pro
         console.log(e);
       }
     }
-  }, [provider, startBlock, contracts, contractName, eventName]);
+  }, [provider, contracts, contractName, eventName]);
 
   return updates;
 }

@@ -17,7 +17,7 @@ export default function useContractReader(contracts, contractName, functionName,
     if (typeof onChange === "function") {
       setTimeout(onChange.bind(this, value), 1);
     }
-  }, [value, onChange]);
+  }, [value]);
 
   usePoller(async () => {
     if (contracts && contracts[contractName]) {

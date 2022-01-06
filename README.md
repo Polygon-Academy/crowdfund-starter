@@ -1,15 +1,18 @@
-# A Polygon Lending dApp starter kit!
 
-> a demonstrator for depositing & borrowing assets on Aave
 
----
 
-## quickstart
+
+
+# Emoji Support
+## 🏗 scaffold-eth MVP CLR Example
+
 
 ```bash
-git clone https://github.com/Polygon-Academy/lender-kit
+git clone https://github.com/austintgriffith/scaffold-eth.git emoji-support
 
-cd lender-kit
+cd emoji-support
+
+git checkout emoji-support
 ```
 
 ```bash
@@ -18,29 +21,44 @@ yarn install
 
 ```
 
+> you might get node-gyp errors, ignore them and run:
+
 ```bash
 
 yarn start
 
 ```
 
-- In a second terminal window run:
+> in a second terminal window:
 
 ```bash
 
-yarn fork
+yarn chain
 
 ```
-This branch uses a local fork of mainnet, which is easy to do with Hardhat ([see here to learn more](https://hardhat.org/guides/mainnet-forking.html)). The template configuration uses an Infura node, however this is not a full archive node, so it will only work for an hour or so. To get a long-lasting fork...
-- Go to alchemyapi.io and get an API key for mainnet
-- Replace the Infura URL with an Alchemy URL with your API key (i.e. https://eth-mainnet.alchemyapi.io/v2/<API_KEY_HERE>) into the `fork` script on line 28 of /packages/hardhat/package.json
+
+> in a third terminal window:
+
+```bash
+
+yarn deploy
+
+```
+
+🔏 Edit the deploy script: `packages/buidler/scripts/deploy.js`
+
+📝 Edit your frontend `App.jsx` in `packages/react-app/src`
 
 📱 Open http://localhost:3000 to see the app
 
-- Send your burner wallet some ETH using the faucet
-- Swap some ETH for DAI
-- Go to "Lend" and Deposit DAI into Aave
-- Borrow whatever assets you want!
+📡 Deploy by creating account `yarn generate` send funds to `yarn account` and then edit `packages/buidler/buidler.config.js` defaultNetwork
 
-Notes:
-- The on-chain requests are quite heavy for this branch, so it can sometimes take the mainnet fork a little while to get going - you may need to refresh several times before everything is cached.
+🚢 Ship your app with `yarn build` and then `yarn surge` or `yarn s3`
+
+
+![image](https://user-images.githubusercontent.com/2653167/98257948-85038a80-1f3d-11eb-8cfc-1fc9f89104ac.png)
+
+
+
+![image](https://user-images.githubusercontent.com/2653167/98258057-a2385900-1f3d-11eb-9cc0-ad50621fbc58.png)
+
