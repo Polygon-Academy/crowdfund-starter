@@ -1,5 +1,5 @@
 # Crowdfund Starter
-## 🏗 A crowdfunding/crowdloaning starter kit made with scaffold-eth
+## 🏗 A crowdfunding/crowdloaning starter kit
 
 
 ```bash
